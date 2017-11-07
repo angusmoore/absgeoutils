@@ -18,7 +18,7 @@ intersection <- function(geo1, geo2, method) {
     inter <- trysfintersection(geo1, geo2)
     return(inter)
   } else if (method == 2) {
-    inter <- raster::intersect(as(geo1, "Spatial"), as(geo2, "Spatial"))
+    inter <- raster::intersect(methods::as(geo1, "Spatial"), methods::as(geo2, "Spatial"))
     return(sf::st_as_sf(inter))
   } else {
     stop(paste("Unknown method ", method, sep = ""))
