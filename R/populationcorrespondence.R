@@ -10,7 +10,6 @@ populationcorrespondence.calculate <- function(from, to, from.ID, to.ID, MB, MBc
   message(paste("Calculating mesh block overlaps (this is very slow)... (started at ", Sys.time(), ")", sep = ""))
   start.time <- Sys.time()
   MBfraction <- findoverlaps(MB, combined, method)
-  sf::st_geometry(MBfraction) <- NULL
   end.time <- Sys.time()
   time.taken <- end.time - start.time
   message(paste("Calculating mesh block overlaps (this is very slow)...done. (Completed in ", round(time.taken,2), " ",  attr(time.taken, 'units'), ")", sep = ""))

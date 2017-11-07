@@ -1,7 +1,6 @@
 areacorrespondence <- function(from, to, from.ID, to.ID, filename = NULL, method = 2) {
 
   overlaps <- findoverlaps(from, to, method)
-  sf::st_geometry(overlaps) <- NULL;
 
   correspondence <- data.frame(from = overlaps[, from.ID], to = overlaps[, to.ID], weight = overlaps$overlap.area/overlaps$area_1)
   colnames(correspondence) <- c(from.ID, to.ID, "weight")
