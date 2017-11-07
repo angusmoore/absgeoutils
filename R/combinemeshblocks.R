@@ -17,7 +17,7 @@ loadAUSmb <- function(MBpath, MBcode = "MB_CODE11") {
 
   # Read in population counts
   message("Adding population counts...", appendLF = FALSE)
-  pop <- read.csv(system.file("extdata", "meshblocks/censuscounts_mb_2011_aust.csv", package = "absgeoutils"), header = TRUE)
+  pop <- read.csv(paste(MBpath, "meshblocks/censuscounts_mb_2011_aust.csv", sep = ""), header = TRUE)
   AUS <- merge(AUS, pop, by.x = MBcode, by.y = "Mesh_Block_ID", all.x = TRUE)
   message("done.")
 
