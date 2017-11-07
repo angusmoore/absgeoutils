@@ -10,23 +10,28 @@ findoverlaps <- function(geo1, geo2, method) {
     
     result <- intersection(geo1[i, ], geo2, method)
     
-    # Filter to only area-valid geometries (e.g. ignore MULTILINESTRINGs etc formed from boundary, but not area, overlaps)
-    nonpolygon <- nonpolygon + sum(!sf::st_is(result, c("POLYGON", "MULTIPOLYGON")))
-    result <- result[sf::st_is(result, c("POLYGON", "MULTIPOLYGON")), ]
-    # check validity
-    if (!all(sf::st_is_valid(result))){
-      result <- result[sf::st_is_valid(result), ]
-    }
-    # calculate area
-    result$overlap.area <- as.numeric(sf::st_area(result))
-    
-    # Remove geography (helps keep memory usage down)
-    sf::st_geometry(result) <- NULL
-    
-    if (i == 1) {
-      overlaps <- result
-    } else {
-      overlaps <- rbind(overlaps, result)
+    # Ignore empty intersections
+    if (nrow(result) > 0) {
+      # Filter to only area-valid geometries (e.g. ignore MULTILINESTRINGs etc formed from boundary, but not area, overlaps)
+      nonpolygon <- nonpolygon + sum(!sf::st_is(result, c("POLYGON", "MULTIPOLYGON")))
+      result <- result[sf::st_is(result, c("POLYGON", "MULTIPOLYGON")), ]
+      # check validity
+      if (!all(sf::st_is_valid(result))){
+        result <- result[sf::st_is_valid(result), ]
+      }
+      # calculate area
+      result$overlap.area <- as.numeric(sf::st_area(result))
+
+      # Remove geography (helps keep memory usage down)
+      sf::st_geometry(result) <- NULL
+
+      if (i == 1) {
+        overlaps <- result
+      } else {
+        overlaps <- rbind(overlaps, result)
+      }
+    } else if (i == 1) {
+      stop("First geometry came up empty. This breaks the code.")
     }
   }
   
