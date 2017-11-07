@@ -35,10 +35,10 @@ populationcorrespondence.calculate <- function(from, to, from.ID, to.ID, MB, MBc
   return(correspondence)
 }
 
-populationcorrespondence <- function(from, to, from.ID, to.ID, filename = NULL, MB = NULL, MBcode = "MB_CODE11", method = 2) {
+populationcorrespondence <- function(from, to, from.ID, to.ID, filename = NULL, MBpath = paste(getwd(), "/meshblocks/", sep =""), MB = NULL, MBcode = "MB_CODE11", method = 2) {
   noteintersectionmethod(method)
   if (is.null(MB)) {
-    MB <- loadAUSmb(MBcode)
+    MB <- loadAUSmb(MBpath, MBcode)
     # For some reason, the mesh blocks don't have a coordinate reference system, set to the same as the from geography (which whould be right)
     sf::st_crs(MB) <- sf::st_crs(from)
   }
