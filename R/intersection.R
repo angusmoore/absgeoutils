@@ -19,7 +19,11 @@ intersection <- function(geo1, geo2, method) {
     return(inter)
   } else if (method == 2) {
     inter <- raster::intersect(methods::as(geo1, "Spatial"), methods::as(geo2, "Spatial"))
-    return(sf::st_as_sf(inter))
+    if (!is.null(inter)) {
+      return(sf::st_as_sf(inter))
+    } else {
+      return(geo1[FALSE,]) # Return an empty SF collection, which then gets ignored in overlaps
+    }
   } else {
     stop(paste("Unknown method ", method, sep = ""))
   }
