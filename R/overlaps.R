@@ -3,12 +3,12 @@ findoverlaps <- function(geo1, geo2, method) {
   geo1$area_1 <- as.numeric(sf::st_area(geo1))
 
   nonpolygon <- 0
-  pb <- progress::progress_bar$new(total = nrow(geo1), format = "Elapsed: :elapsed [:bar] :percent ETA: :eta")
+  pb <- progress::progress_bar$new(total = nrow(geo2), format = "Elapsed: :elapsed [:bar] :percent ETA: :eta")
   
-  for (i in 1:nrow(geo1)) {
+  for (i in 1:nrow(geo2)) {
     pb$tick()
     
-    result <- intersection(geo1[i, ], geo2, method)
+    result <- intersection(geo1, geo2[i, ], method)
     
     # Ignore empty intersections
     if (nrow(result) > 0) {
