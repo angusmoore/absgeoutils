@@ -19,7 +19,7 @@ findoverlaps <- function(geo1, geo2) {
     result <- sf::st_collection_extract(result, "POLYGON")
   }
   result$overlap.area <- units::drop_units(sf::st_area(result))
-  result <- result %>% dplyr::filter(overlap.area > 1) # Ignore any areas with area less than 1m^2. These will just be inaccuracies
+  result <- result[result$overlap.area >= 1, ] # Ignore any areas with area less than 1m^2. These will just be inaccuracies
   result <- tibble::as_tibble(strip_geography(result))
   return(result)
 }

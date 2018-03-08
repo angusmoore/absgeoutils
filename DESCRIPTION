@@ -10,3 +10,16 @@ Description: A set of convenience functions for constructing area- and populatio
 License:  MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+Imports:
+  tibble,
+  dplyr,
+  sf,
+  stats,
+  utils,
+  lazyeval,
+  units
+Suggests:
+  testthat,
+    knitr,
+    rmarkdown
+RoxygenNote: 6.0.1

@@ -1,7 +1,12 @@
 populationcorrespondence.calculate <- function(from, to, from.ID, to.ID, MB, URcode) {
-  from <- from %>% dplyr::select_(from.ID) %>% dplyr::rename_(.dots = setNames(from.ID, "from"))
-  to <- to %>% dplyr::select_(to.ID) %>% dplyr::rename_(.dots = setNames(to.ID, "to"))
-  MB <- MB %>% dplyr::select_(URcode) %>% dplyr::rename_(.dots = setNames(URcode, "UR"))
+  from <- dplyr::select_(from, from.ID)
+  from <- dplyr::rename_(from, .dots = stats::setNames(from.ID, "from"))
+
+  to <- dplyr::select_(to, to.ID)
+  to <- dplyr::rename_(to, .dots = stats::setNames(to.ID, "to"))
+
+  MB <- dplyr::select_(MB, URcode)
+  MB <- dplyr::rename_(MB,.dots = stats::setNames(URcode, "UR"))
 
   # Clean out any non-2d geographies
   from <- only2d(from)
@@ -28,38 +33,77 @@ populationcorrespondence.calculate <- function(from, to, from.ID, to.ID, MB, URc
   message(paste0("Calculating mesh block overlaps...done. (Completed in ", round(time.taken,2), " ",  attr(time.taken, 'units'), ")"))
 
   # From that, construct pop counts for that very fine geography (assign MB's population to the sub-MB areas by area weights)
-  correspondence <- dplyr::mutate(correspondence, UR = UR * overlap.area / area_1) %>% dplyr::select(-area_1)
+  correspondence$UR <- correspondence$UR * correspondence$overlap.area / correspondence$area_1
+  correspondence <- dplyr::select_(correspondence, "-area_1")
 
   # Collapse on from.ID to get population for the from.IDs
-  frompop <- correspondence %>% dplyr::group_by(from) %>% dplyr::summarise(frompop = sum(UR, na.rm = TRUE))
-  frompop <- frompop %>% dplyr::mutate(frompop = ifelse(frompop < POPULATIONTHRESHOLD, 0, frompop)) # If populatoin is too small, do by area instead
+  frompop <- dplyr::group_by_(correspondence, "from")
+  frompop <- dplyr::summarise(frompop, frompop = sum(UR, na.rm = TRUE))
+  frompop$frompop <- ifelse(frompop$frompop < POPULATIONTHRESHOLD, 0, frompop$frompop) # If population is too small, do by area instead
 
   # Use that, and the populations in the correspondence geography to get weights
-  correspondence <- correspondence %>% dplyr::left_join(frompop) %>% dplyr::mutate(weight = UR / frompop)
+  correspondence <-  dplyr::left_join(correspondence, frompop)
+  correspondence$weight <-  correspondence$UR / correspondence$frompop
 
   # What if from pop is zero? Do the correspondence on area
-  nopop <- correspondence %>% dplyr::filter(frompop == 0) %>% dplyr::select(from) %>% unlist() %>% unname
-  nopopareas <- from %>% dplyr::filter(from %in% nopop)
+  nopop <- dplyr::filter(correspondence, frompop == 0)
+  nopop <- unname(unlist(dplyr::select(nopop, from)))
+  nopopareas <-  dplyr::filter(from, from %in% nopop)
   nopopareas$from_area <- units::drop_units(sf::st_area(nopopareas))
   sf::st_geometry(nopopareas) <- NULL
-  correspondence <- dplyr::left_join(correspondence, nopopareas) %>% dplyr::mutate(weight = ifelse(frompop == 0, overlap.area / from_area, weight)) %>% dplyr::select(-from_area)
+  correspondence <- dplyr::left_join(correspondence, nopopareas)
+  correspondence$weight <- ifelse(correspondence$frompop == 0, correspondence$overlap.area / correspondence$from_area, correspondence$weight)
+  correspondence <- dplyr::select_(correspondence, "-from_area")
 
     # Collapse on from.ID and to.ID, ignore small weights
-  correspondence <- correspondence %>% dplyr::group_by(from, to) %>%
-    dplyr::summarise(weight = sum(weight, na.rm = TRUE)) %>%
-    dplyr::filter(weight > CORRESPONDENCETOLERANCE)
+  correspondence <- dplyr::group_by_(correspondence, "from", "to")
+  correspondence <- dplyr::summarise(correspondence, weight = sum(weight, na.rm = TRUE))
+  correspondnece <- correspondence[correspondence$weight > CORRESPONDENCETOLERANCE, ]
 
     # Ensure weights sum to 1 (may not, because we ignored small intersections)
-  correspondence <- correspondence %>% dplyr::summarise(totalweight = sum(weight, na.rm = TRUE)) %>%
-    dplyr::right_join(correspondence) %>% dplyr::mutate(weight= weight / totalweight) %>% dplyr::select(-totalweight)
+  tweight <- dplyr::summarise(correspondence, totalweight = sum(weight, na.rm = TRUE))
+  correspondence <- dplyr::left_join(correspondence, tweight)
+  correspondence$weight <- correspondence$weight / correspondence$totalweight
+  correspondence <- dplyr::select_(correspondence, "-totalweight")
 
   # Rename the codes
-  correspondence <- correspondence %>% dplyr::rename_(.dots = setNames("from", from.ID))
-  correspondence <- correspondence %>% dplyr::rename_(.dots = setNames("to", to.ID))
+  correspondence <- dplyr::rename_(correspondence, .dots = stats::setNames("from", from.ID))
+  correspondence <- dplyr::rename_(correspondence, .dots = stats::setNames("to", to.ID))
 
   return(correspondence)
 }
 
+#' Construct a population-weighted correspondence betwene two digital boundary files
+#'
+#' Population weights are determined from Census Mesh Block files (which you supply)
+#'
+#' @param from The simple feature geography you wish to correspond from
+#' @param to The simple feature geography you wish to correspond to
+#' @param from.ID The column name that identifies the areas in the from geography
+#' @param to.ID The column name that identifies the areas in the to geography
+#' @param MB A (whole of Australia) mesh block simple feature geography
+#' @param URcode The column name in MB that has the persons usually resident count
+#' @param filename (optional) A csv filename to write the correspondence to when done
+#'
+#' @examples
+#' \dontrun{
+#'   NSW <- read_sf("extdata/ASGC2006/MB_NSW_2006_census.shp")
+#'   VIC <- read_sf("extdata/ASGC2006/MB_Vic_2006_census.shp")
+#'   QLD <- read_sf("extdata/ASGC2006/MB_Qld_2006_census.shp")
+#'   SA <- read_sf("extdata/ASGC2006/MB_SA_2006_census.shp")
+#'   WA <- read_sf("extdata/ASGC2006/MB_WA_2006_census.shp")
+#'   TAS <- read_sf("extdata/ASGC2006/MB_Tas_2006_census.shp")
+#'   NT <- read_sf("extdata/ASGC2006/MB_NT_2006_census.shp")
+#'   ACT <- read_sf("extdata/ASGC2006/MB_ACT_2006_census.shp")
+#'   OT <- read_sf("extdata/ASGC2006/MB_OT_2006_census.shp")
+#'   AUST_MB <- rbind(NSW, VIC, QLD, SA, WA, TAS, NT, ACT, OT)
+#'   rm(list = c("NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT", "OT"))
+#'   ASGS11_SA2 <- read_sf("extdata/ASGS2011/SA2_2011_AUST.shp")
+#'   ASGC06_SLA <- read_sf("extdata/ASGC2006/SLA06aAUST.shp")
+#'   populationcorrespondence(ASGC06_SLA, ASGS11_SA2, "SLA_CODE06", "SA2_MAIN11", AUST_MB, "TURPOP2006")
+#' }
+#'
+#' @export
 populationcorrespondence <- function(from, to, from.ID, to.ID, MB, URcode = "Persons_Usually_Resident", filename = NULL) {
   correspondence <- populationcorrespondence.calculate(from, to, from.ID, to.ID, MB, URcode)
   missingcodes <- missingcodes(strip_geography(from), correspondence, from.ID)
@@ -69,7 +113,7 @@ populationcorrespondence <- function(from, to, from.ID, to.ID, MB, URcode = "Per
 
   # Write to csv if desired
   if (!is.null(filename)) {
-    write.csv(correspondence, file = filename, row.names = FALSE)
+    utils::write.csv(correspondence, file = filename, row.names = FALSE)
   }
   return(correspondence)
 }
