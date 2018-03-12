@@ -1,49 +1,33 @@
-correspond.column <- function(correspondence, data, data.by, data.y, correspondence.from = "from", correspondence.to = "to", correspondence.weight = "weight", na.rm = TRUE) {
-  tolist <- sort(unique(correspondence[, correspondence.to]))
+#' Convert data from one geography to another
+#'
+#' @param data The data you wish to convery
+#' @param correspondence The correspondence
+#' @param data.by The column name that identifies the area IDs in your data
+#' @param correspondence.from The column name that identifies the from areas in the correspondence
+#' @param correspondence.to The column name that identifies the to areas in the correspondence
+#' @param correspondence.weight The column name that identifies the weights in the correspondence
+#'
+#' @export
+correspond <- function(data, correspondence, data.by, correspondence.from, correspondence.to, correspondence.weight) {
+  correspondence <- dplyr::select_(correspondence, correspondence.from, correspondence.to, correspondence.weight)
+  correspondence <- dplyr::rename_(correspondence, .dots = stats::setNames(correspondence.from, "from"))
+  correspondence <- dplyr::rename_(correspondence, .dots = stats::setNames(correspondence.to, "to"))
+  correspondence <- dplyr::rename_(correspondence, .dots = stats::setNames(correspondence.weight, "weight"))
 
-  out <- data.frame(code = tolist)
-  out[, data.y] <- 0
-  hit <- out
+  merged <- dplyr::left_join(data, correspondence, by = stats::setNames("from", data.by))
+  merged <- dplyr::select_(merged, paste("-",data.by))
 
-  for (to in tolist) {
-    r <- out$code == to
-    froms <- correspondence[correspondence[, correspondence.to] == to, ]
-
-    for (from in froms[, correspondence.from]) {
-      datafrom <- data[data[,data.by] == from, data.y]
-      if (length(datafrom) > 1) {
-        stop(paste(from, " had more than one entry in the original data.", sep = ""))
-      } else if (length(datafrom) == 1 && !is.na(datafrom)) {
-        out[r, data.y] <- out[r, data.y] + datafrom * froms[froms[, correspondence.from] == from, correspondence.weight]
-        hit[r, data.y] <- 1
-      } else if (!na.rm) {
-        out[r, data.y] <- NA
-        hit[r, data.y] <- 1
-      }
+  for (col in colnames(merged)) {
+    if (!(col %in% dplyr::group_vars(merged)) &&  col != "to" && col != "weight") {
+      mutate_call = lazyeval::interp(~ a * b, a = as.name(col), b = as.name("weight"))
+      merged <- dplyr::mutate_(merged, .dots = stats::setNames(list(mutate_call), col))
     }
   }
-  # Anything that didn't get hit, set to NA
-  out[hit==0] <- NA
-  return(out)
-}
 
-sanitycheck <- function(data, varlist) {
-  for (var in varlist) {
-    if (!var %in% colnames(data)) {
-      stop(paste(var, " is not in data.", sep = ""))
-    }
-  }
-}
+  merged <- dplyr::select_(merged, "-weight")
+  merged <- dplyr::group_by_(merged, "to", add = TRUE)
+  merged <- dplyr::summarise_all(merged, dplyr::funs(sum))
+  merged <- dplyr::rename_(merged,  .dots = stats::setNames("to", correspondence.to))
 
-correspond <- function(correspondence, data, varlist = colnames(data), data.by, correspondence.from = "from", correspondence.to = "to", correspondence.weight = "weight", na.rm = TRUE) {
-  sanitycheck(data, varlist)
-  varlist <- varlist[varlist != data.by]
-  tolist <- sort(unique(correspondence[, correspondence.to]))
-  out <- data.frame(code = tolist)
-
-  for (var in varlist) {
-    message(var)
-    out <- merge(out, correspond.column(correspondence, data, data.by, var, correspondence.from, correspondence.to, correspondence.weight, na.rm))
-  }
-  return(out)
+  return(merged)
 }

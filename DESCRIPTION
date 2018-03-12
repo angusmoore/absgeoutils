@@ -1,11 +1,25 @@
 Package: absgeoutils
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Title: Functions to make working with ABS geographies easier
+Version: 0.0.1
+Author: Angus Moore
+Maintainer: Angus Moore <yourself@somewhere.net>
+Description: A set of convenience functions for constructing area- and population-weighted
+    correspondences from ABS (or other) digital boundary files. And or converting data
+    from one geography to another.
+License:  MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+Imports:
+  tibble,
+  dplyr,
+  sf,
+  stats,
+  utils,
+  lazyeval,
+  units
+Suggests:
+  testthat,
+    knitr,
+    rmarkdown
+RoxygenNote: 6.0.1
