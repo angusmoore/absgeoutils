@@ -5,7 +5,7 @@ Version: 0.0.1
 Author: Angus Moore
 Maintainer: Angus Moore <yourself@somewhere.net>
 Description: A set of convenience functions for constructing area- and population-weighted
-    correspondences from ABS (or other) digital boundary files. And or converting data
+    correspondences from ABS (or other) digital boundary files. And for converting data
     from one geography to another.
 License:  MIT + file LICENSE
 Encoding: UTF-8
@@ -20,6 +20,7 @@ Imports:
   units
 Suggests:
   testthat,
-    knitr,
-    rmarkdown
+  knitr,
+  rmarkdown,
+  magrittr
 RoxygenNote: 6.0.1
