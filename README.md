@@ -22,3 +22,7 @@ If you get this message, try setting your proxy server with the following comman
 ```
 httr::set_config(httr::use_proxy(curl::ie_get_proxy_for_url("http://www.google.com")))
 ```
+
+# Documentation
+
+Package documentation can be found [here](https://angusmoore.github.io/absgeoutils/absgeoutils.pdf).
