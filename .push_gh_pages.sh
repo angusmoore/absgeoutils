@@ -13,8 +13,6 @@ done
 
 R -e "path <- '../absgeoutils'; system(paste(shQuote(file.path(R.home('bin'), 'R')), 'CMD', 'Rd2pdf', shQuote(path)))"
 
-R CMD INSTALL "$(find . -type f -iname 'absgeoutils*.tar.gz' -print -quit)"
-
 cd out
 git init
 git config user.name "travis"
